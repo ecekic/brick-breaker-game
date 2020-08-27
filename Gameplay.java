@@ -16,10 +16,13 @@ public class Gameplay extends JPanel implements KeyListener, ActionListener {
 	private int playerX = 310; // starting position of slider 
 	private int ballPosX = 120; // ball position x
 	private int ballPosY = 350; // ball position y
-	private int ballXDirection = -1; //
+	private int ballXDirection = -1; 
 	private int ballYDirection = -2; 
+
+	private MapGenerator map;
 	
 	public Gameplay() {
+		map = new MapGenerator(3,7);
 		addKeyListener(this);
 		setFocusable(true);
 		setFocusTraversalKeysEnabled(false);
@@ -31,17 +34,45 @@ public class Gameplay extends JPanel implements KeyListener, ActionListener {
 		// background
 		g.setColor(Color.pink);
 		g.fillRect(1, 1, 692, 592);
+		// drawing map
+		map.draw((Graphics2D)g);
 		// borders
 		g.setColor(Color.GRAY);
 		g.fillRect(0, 0, 3, 592);
 		g.fillRect(0, 0, 692, 3);
 		g.fillRect(691, 0, 3, 592);
+		// scores
+		g.setColor(Color.GRAY);
+		g.setFont(new Font("serif",Font.BOLD, 25));
+		g.drawString(""+score, 590, 30);
 		// the paddle
 		g.setColor(Color.CYAN);
 		g.fillRect(playerX, 550, 100, 8);
 		// ball
 		g.setColor(Color.BLACK);
 		g.fillOval(ballPosX, ballPosY, 20, 20);
+		// if you finished the game
+		if (totalBricks <= 0) {
+			play = false;
+			ballXDirection = 0;
+			ballYDirection = 0;
+			g.setColor(Color.RED);
+			g.setFont(new Font("serif",Font.BOLD, 30));
+			g.drawString("You Won! Score: "+score, 190, 300);
+			g.setFont(new Font("serif",Font.BOLD, 20));
+			g.drawString("Press Enter to Restart", 250, 350);
+		}
+		// game over
+		if (ballPosY > 570) { // if ball goes under the paddle
+			play = false;
+			ballXDirection = 0;
+			ballYDirection = 0;
+			g.setColor(Color.white);
+			g.setFont(new Font("serif",Font.BOLD, 30));
+			g.drawString("Game Over. Score: "+score, 190, 300);
+			g.setFont(new Font("serif",Font.BOLD, 20));
+			g.drawString("Press Enter to Restart", 250, 350);
+		}
 		g.dispose();
 	}
 
@@ -53,6 +84,38 @@ public class Gameplay extends JPanel implements KeyListener, ActionListener {
 			// need to create a rectangle surrounding the ball in order to check the intersection of the ball and slider
 			if((new Rectangle(ballPosX, ballPosY, 20, 20).intersects(new Rectangle(playerX, 550, 100, 8)))) {
 				ballYDirection = -ballYDirection;
+			}
+			// first map is map in gameplay, second is map in mapgenerator
+			A: for (int i=0; i<map.map.length; i++) {
+				for (int j=0; j<map.map[0].length; j++) {
+					if(map.map[i][j] > 0) {
+						// detects intersection
+						// detect position of ball and brick
+						int brickX = j * map.brickWidth + 80;
+						int brickY = i * map.brickHeight + 50;
+						int brickWidth = map.brickWidth;
+						int brickHeight = map.brickHeight;
+						
+						// create rectangle around brick
+						Rectangle rect = new Rectangle(brickX, brickY, brickWidth, brickHeight);
+						Rectangle ballRect = new Rectangle(ballPosX, ballPosY, 20,20);
+						Rectangle brickRect = rect;
+						
+						if (ballRect.intersects(brickRect)) {
+							map.setBrickValue(0, i, j);
+							totalBricks--;
+							score += 5;
+							
+							// left and right intersection
+							if (ballPosX + 19 <= brickRect.x || ballPosX + 1 >= brickRect.x + brickRect.width) {
+								ballXDirection = -ballXDirection;
+							}
+							else
+								ballYDirection = -ballYDirection;
+							break A;
+						}
+					}
+				}
 			}
 			// if ball is touching top, left, right
 			ballPosX += ballXDirection;
@@ -98,6 +161,22 @@ public class Gameplay extends JPanel implements KeyListener, ActionListener {
 				moveLeft();
 			}
 		}
+		if (e.getKeyCode() == KeyEvent.VK_ENTER) { // press enter key
+			if (!play) {
+				// restarts the game
+				play = true;
+				ballPosX = 120;
+				ballPosY = 350;
+				ballXDirection = -1;
+				ballYDirection = -2;
+				playerX = 310;
+				score = 0;
+				totalBricks = 21;
+				map = new MapGenerator(3,7);
+				
+				repaint();
+			}
+		}
 		
 	}
 
@@ -120,3 +199,4 @@ public class Gameplay extends JPanel implements KeyListener, ActionListener {
 	}
 
 }
+
